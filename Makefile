@@ -53,6 +53,10 @@ kind-up: ## starts a KinD cluster for local development
 kind-down: ## shuts down the KinD cluster
 	@$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME)
 
+.PHONY: install
+install: ## install the aggragation api server example
+	docker pull ghcr.io/krateoplatformops/aggregation-layer-example:0.1.0
+	@$(KIND) load docker-image ghcr.io/krateoplatformops/aggregation-layer-example:0.1.0 --name=$(KIND_CLUSTER_NAME) 
 
 .PHONY: help
 help: ## print this help

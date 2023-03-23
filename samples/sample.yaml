@@ -1,0 +1,7 @@
+apiVersion: example.krateo.dev/v1alpha1
+kind: Example
+metadata:
+  name: example-1
+spec:
+  motto: wtf
+  name: John Doe

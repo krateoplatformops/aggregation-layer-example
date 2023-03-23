@@ -12,18 +12,17 @@ to provide what is named an "aggregated apiserver".
 Create a kind cluster if you don't have it already
 
 ```shell
-make kind-up
+kind create cluster --name=demo
 ```
 
 If you are not using kind, please make sure to enable the [needed flags](https://kubernetes.io/docs/tasks/extend-kubernetes/configure-aggregation-layer/#enable-kubernetes-apiserver-flags) on your kube-apiserver.
 
 ### Install
 
-
 ```sh
-$ helm repo add krateo https://charts.krateo.io
-$ helm repo update krateo
-$ helm install aggregation-layer-example krateo/aggregation-layer-example 
+docker pull ghcr.io/krateoplatformops/aggregation-layer-example:0.1.0
+kind load docker-image ghcr.io/krateoplatformops/aggregation-layer-example:0.1.0 --name=demo
+kubectl apply -f manifests/
 ```
 
 ## Resources and inspiration
