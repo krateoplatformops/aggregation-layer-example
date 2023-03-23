@@ -24,7 +24,7 @@ rules:
       ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
     verbs: ["get", "watch", "list"]
   - apiGroups:
-      - example.fntlnz.wtf
+      - example.krateo.dev
     resources:
       - pods
       - nodes
@@ -162,9 +162,9 @@ kind: APIService
 metadata:
   labels:
     k8s-app: aggregation-layer-example
-  name: v1alpha1.example.fntlnz.wtf
+  name: v1alpha1.example.krateo.dev
 spec:
-  group: example.fntlnz.wtf
+  group: example.krateo.dev
   groupPriorityMinimum: 100
   insecureSkipTLSVerify: true
   service:
