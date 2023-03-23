@@ -1,41 +1,65 @@
-IMAGE := ghcr.io/lucasepe/kube-code-generator:0.1.0
+# Set the shell to bash always
+SHELL := /bin/bash
 
-DIRECTORY := $(PWD)
-PROJECT_PACKAGE := github.com/krateoplatformops/aggregation-layer-example
-DEPS_CMD := go mod tidy
+# Look for a .env file, and if present, set make variables from it.
+ifneq (,$(wildcard ./.env))
+	include .env
+	export $(shell sed 's/=.*//' .env)
+endif
 
-default: generate
+KIND_CLUSTER_NAME ?= local-dev
+KUBECONFIG ?= $(HOME)/.kube/config
+
+VERSION := $(shell git describe --always --tags | sed 's/-/./2' | sed 's/-/./2')
+ifndef VERSION
+VERSION := 0.0.0
+endif
+
+# Tools
+KIND=$(shell which kind)
+LINT=$(shell which golangci-lint)
+KUBECTL=$(shell which kubectl)
+SED=$(shell which sed)
+
+.DEFAULT_GOAL := help
+
+ 
+.PHONY: dev
+dev: generate ## run the controller in debug mode
+	$(KUBECTL) apply -f crds/ -R
+	go run cmd/main.go -d
 
 .PHONY: generate
-generate: generate-client generate-crd
+generate: tidy ## generate all CRDs
+	go generate ./...
 
-.PHONY: generate-client
-generate-client:
-	docker run -it --rm \
-	-v $(DIRECTORY):/go/src/$(PROJECT_PACKAGE) \
-	-e PROJECT_PACKAGE=$(PROJECT_PACKAGE) \
-	-e CLIENT_GENERATOR_OUT=$(PROJECT_PACKAGE)/client \
-	-e APIS_ROOT=$(PROJECT_PACKAGE)/apis \
-	-e GROUPS_VERSION="example:v1alpha1" \
-	-e GENERATION_TARGETS="deepcopy,client" \
-	$(IMAGE)
+.PHONY: tidy
+tidy: ## go mod tidy
+	go mod tidy
 
-.PHONY: generate-crd
-generate-crd:
-	docker run -it --rm \
-	-v $(DIRECTORY):/src \
-	-e GO_PROJECT_ROOT=/src \
-	-e CRD_TYPES_PATH=/src/apis \
-	-e CRD_OUT_PATH=/src/crds \
-	$(IMAGE) update-crd.sh
+.PHONY: test
+test: ## go test
+	go test -v ./...
 
-.PHONY: deps
-deps:
-	$(DEPS_CMD)
+.PHONY: lint
+lint: ## go lint
+	$(LINT) run
 
-.PHONY: clean
-clean:
-	echo "Cleaning generated files..."
-	rm -rf ./manifests
-	rm -rf ./client
-	rm -rf ./apis/example/v1alpha1/zz_generated.deepcopy.go
+.PHONY: kind-up
+kind-up: ## starts a KinD cluster for local development
+	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_NAME) >/dev/null 2>&1 || $(KIND) create cluster --name=$(KIND_CLUSTER_NAME)
+
+.PHONY: kind-down
+kind-down: ## shuts down the KinD cluster
+	@$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME)
+
+
+.PHONY: demo
+demo: ## Run the demo examples
+	@$(KUBECTL) create secret generic azuredevops-endpoint --from-literal=token=$(TOKEN) || true
+	@$(KUBECTL) apply -f samples/claim.yaml
+
+
+.PHONY: help
+help: ## print this help
+	@grep -E '^[a-zA-Z\._-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
